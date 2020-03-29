@@ -322,7 +322,7 @@ void displayFunc()
   float p[16];
   matrix.SetMatrixMode(OpenGLMatrix::Projection);
   matrix.GetMatrix(p);
-  //
+  
   // bind shader
   pipelineProgram->Bind();
 
@@ -335,6 +335,16 @@ void displayFunc()
 
   glBindVertexArray(tubeVertexArray);
   glDrawArrays(GL_TRIANGLES, 0, tubeNumVertices);
+
+  //bind secondShader
+  secondPipelineProgram->Bind();
+
+  //set second's variables
+  secondPipelineProgram->SetModelViewMatrix(m);
+  secondPipelineProgram->SetProjectionMatrix(p);
+
+  glBindVertexArray(backgroundVertexArray);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 
   glutSwapBuffers();
 }
@@ -588,7 +598,7 @@ void CreatePositions(std::vector<glm::vec3>& positions){
       for(int x = 0; x<= delta; x++){
         if(cameraNormalVectors.size() == 0){
           /* it's the first, calculate using some arbitrary V */
-          glm::vec3 V(0.0, 1.0, 0.0);
+          glm::vec3 V(1.0, 0.0, 0.0);
           glm::vec3 N0 = glm::normalize(glm::cross(tangentVectors[0], V));
           cameraNormalVectors.emplace_back(N0);
           glm::vec3 B0 = glm::normalize(glm::cross(tangentVectors[0], N0));
@@ -694,9 +704,9 @@ void CreateBackground(float depth, float x_dist, float z_dist, float width, floa
   glm::vec3 topRight(width/2, -depth, -height/2);
 
   glm::vec2 texBottomLeft(0,0);
-  glm::vec2 texBottomRight(3000,0);
-  glm::vec2 texTopLeft(0,2000);
-  glm::vec2 texTopRight(3000,2000);
+  glm::vec2 texBottomRight(1,0);
+  glm::vec2 texTopLeft(0,1);
+  glm::vec2 texTopRight(1,1);
 
   backgroundCornerPositions.emplace_back(bottomLeft);
   backgroundCornerPositions.emplace_back(topLeft);
@@ -713,6 +723,9 @@ void CreateBackground(float depth, float x_dist, float z_dist, float width, floa
   backgroundTexturePositions.emplace_back(texBottomRight);
   backgroundTexturePositions.emplace_back(texTopLeft);
   backgroundTexturePositions.emplace_back(texTopRight);
+
+  backgroundNumVertices = 6;
+
 }
 
 void initScene(int argc, char *argv[])
@@ -732,11 +745,40 @@ void initScene(int argc, char *argv[])
   float depth = 4.0f;
   float x_dist = 100.0f;
   float z_dist = 100.0f;
-  float width = 100.0f;
+  float width = 150.0f;
   float height = 100.0f;
 
   //depth, width, height as of now only matter 
   CreateBackground(depth, x_dist, z_dist, width, height);
+
+  glGenBuffers(1, &backgroundVertexBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, backgroundVertexBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * 6, backgroundCornerPositions.data(),
+               GL_STATIC_DRAW);
+
+  glGenBuffers(1, &texCoordBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, texCoordBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 6, backgroundTexturePositions.data(),
+               GL_STATIC_DRAW);
+
+  secondPipelineProgram = new BasicPipelineProgram();
+  int returnCode = secondPipelineProgram->CustomInit(shaderBasePath, "basic.newVertexShader.glsl", 
+                                                     "basic.newFragmentShader.glsl");
+  if (returnCode != 0) abort();
+
+  glGenVertexArrays(1, &backgroundVertexArray);
+  glBindVertexArray(backgroundVertexArray);
+  glBindBuffer(GL_ARRAY_BUFFER, backgroundVertexBuffer);
+
+  GLuint second_loc =
+      glGetAttribLocation(secondPipelineProgram->GetProgramHandle(), "position");
+  glEnableVertexAttribArray(second_loc);
+  glVertexAttribPointer(second_loc, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, texCoordBuffer);
+  second_loc = glGetAttribLocation(secondPipelineProgram->GetProgramHandle(), "texCoord");
+  glEnableVertexAttribArray(second_loc);
+  glVertexAttribPointer(second_loc, 2, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 
 
 
