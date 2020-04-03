@@ -545,7 +545,7 @@ void keyboardFunc(unsigned char key, int x, int y)
     break;
 
     case 'l':
-      boolScreenshot = !boolScreenshot;
+      //boolScreenshot = !boolScreenshot;
     break;
 
     case ' ':
@@ -737,6 +737,7 @@ void CreateTube(){
     glm::vec3 v6 = P1 + alpha*(N1 - B1);
     glm::vec3 v7 = P1 + alpha*(-N1 - B1);
 
+    /* commented out because it's just extra calculations for no reason (not seen) */
     //front face
     // addTubeTriangle(v0, v1, v2);
     // addTubeTriangle(v0, v2, v3);
@@ -756,7 +757,6 @@ void CreateTube(){
     GLfloat dot_val = glm::dot(toLightVec, B0);
     addDotDiffuse(dot_val);
 
-
     //top
     addTubeTriangle(v5, v6, v2);
     addTubeTriangle(v5, v2, v1);
@@ -766,7 +766,6 @@ void CreateTube(){
     dot_val = glm::dot(toLightVec, N0);
     addDotDiffuse(dot_val);
 
-
     //left
     addTubeTriangle(v7, v6, v2);
     addTubeTriangle(v7, v2, v3);
@@ -775,7 +774,6 @@ void CreateTube(){
     addReflected(reflected);
     dot_val = glm::dot(toLightVec, -B0);
     addDotDiffuse(dot_val);
-
 
     //bottom
     addTubeTriangle(v4, v7, v3);
