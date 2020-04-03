@@ -27,11 +27,6 @@ uniform float shiny;
 
 void main()
 {
-  // compute the transformed and projected vertex position (into gl_Position) 
-  // compute the vertex color (into col)
-
-
-
   //compute ambient
   vec4 ambient = ka * la;
 
@@ -41,19 +36,11 @@ void main()
   //compute specular
   vec3 toCam = camPos - position;
   toCam = normalize(toCam);
-
-
-
   float shinyTerm = dot(toCam, reflectedVector);
   float base = shinyTerm > 0.0f ? shinyTerm : 0.0f;
-
-
   float withExp = pow(base, shiny);
-
   vec4 specular = ks*ls*withExp;
-
   col = ambient + diffuse + specular;
-
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0f);
 }
 
