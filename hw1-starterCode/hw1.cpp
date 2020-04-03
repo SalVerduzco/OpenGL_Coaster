@@ -32,6 +32,7 @@
 
 using namespace std;
 
+void initUniforms(glm::vec3 cam_pos);
 //The basis matrix
 glm::mat4 basisMatrix;
 glm::mat3x4 controlMatrix;
@@ -42,12 +43,24 @@ glm::mat4x3 transposeControl;
 double s = 0.5;
 glm::vec3 currentCameraPosition;
 
+//PHONG DATA
+glm::vec3 toLightVec(0.54f,0.786f,-0.3f);
+
+int ka_location, La_location;
+int kd_location, Ld_location;
+int ks_location, Ls_location;
+int toLight_location;
+
+int cameraPos_location;
+
 
 //DATADATA
 std::vector<glm::vec3> positions;
 std::vector<glm::vec3> tangentVectors;
 std::vector<glm::vec3> cameraNormalVectors;
 std::vector<glm::vec3> cameraBinormalVectors;
+std::vector<glm::vec3> reflectedVectors;
+std::vector<GLfloat> diffuseDotFloats; 
 int currentIndex = 0;
 
 std::vector<glm::vec3> tubeTriangles;
@@ -243,6 +256,8 @@ int numVertices;
 
 GLuint tubeVertexBuffer, tubeNormalsBuffer;
 GLuint tubeVertexArray;
+GLuint diffuseDotsBuffer;
+GLuint reflectedVectorsBuffer;
 int tubeNumVertices;
 
 GLuint backgroundVertexBuffer, texCoordBuffer;
@@ -282,12 +297,13 @@ void displayFunc()
     //           float centerX, float centerY, float centerZ, 
     //           float upX, float upY, float upZ);
 
+ glm::vec3 camPos;
  if(positions.size() == 0){
     matrix.LookAt(0, 0, 1, 0, 0, 0, 0, 1, 0);
  } else {
 
   //the new position is
-  glm::vec3 camPos = positions[currentIndex];
+  camPos = positions[currentIndex];
 
   glm::vec3 camTangent = tangentVectors[currentIndex];
   glm::vec3 lookAt(camPos.x + camTangent.x,
@@ -325,6 +341,7 @@ void displayFunc()
   
   // bind shader
   pipelineProgram->Bind();
+  initUniforms(camPos);
 
   // set variable
   pipelineProgram->SetModelViewMatrix(m);
@@ -633,6 +650,25 @@ void addTubeNormal(glm::vec3 normalVector){
   }
 }
 
+void addReflected(glm::vec3 v){
+  for(int i = 0; i<6; i++){
+    reflectedVectors.emplace_back(v);
+  }
+
+  std::cout << "Reflected: " << to_string(v.x) << "," << to_string(v.y) << "," <<
+  to_string(v.z) << "\n";
+}
+
+void addDotDiffuse(GLfloat val){
+  for(int i = 0; i<6; i++){
+    if(val < 0.0f){
+      diffuseDotFloats.emplace_back(0.0f);
+    } else {
+      diffuseDotFloats.emplace_back(val);
+    }
+  }
+}
+
 void CreateTube(){
 
   /* For every adjacent positions in the positions array, we are going to make a tube */
@@ -673,21 +709,40 @@ void CreateTube(){
     addTubeTriangle(v4, v5, v1);
     addTubeTriangle(v4, v1, v0);
     addTubeNormal(B0);
+    glm::vec3 reflected = glm::normalize(glm::reflect(toLightVec, B0));
+    addReflected(reflected);
+    GLfloat dot_val = glm::dot(toLightVec, B0);
+    addDotDiffuse(dot_val);
+
 
     //top
     addTubeTriangle(v5, v6, v2);
     addTubeTriangle(v5, v2, v1);
     addTubeNormal(N0);
+    reflected = glm::normalize(glm::reflect(toLightVec, N0));
+    addReflected(reflected);
+    dot_val = glm::dot(toLightVec, N0);
+    addDotDiffuse(dot_val);
+
 
     //left
     addTubeTriangle(v7, v6, v2);
     addTubeTriangle(v7, v2, v3);
     addTubeNormal(-B0);
+    reflected = glm::normalize(glm::reflect(toLightVec, -B0));
+    addReflected(reflected);
+    dot_val = glm::dot(toLightVec, -B0);
+    addDotDiffuse(dot_val);
+
 
     //bottom
     addTubeTriangle(v4, v7, v3);
     addTubeTriangle(v4, v3, v0);
     addTubeNormal(-N0);
+    reflected = glm::normalize(glm::reflect(toLightVec, -N0));
+    addReflected(reflected);
+    dot_val = glm::dot(toLightVec, -N0);
+    addDotDiffuse(dot_val);
 
   }
 
@@ -728,6 +783,40 @@ void CreateBackground(float depth, float x_dist, float z_dist, float width, floa
 
 }
 
+void initUniforms(glm::vec3 cam_pos){
+
+//mode_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "mode"); 
+// void glUniform4f( GLint location,
+//   GLfloat v0,
+//   GLfloat v1,
+//   GLfloat v2,
+//   GLfloat v3);
+
+  std::cout << to_string(cam_pos.x) << "\n";
+
+  ka_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "ka");
+  glUniform4f(ka_location, 0.2f,0.2f,0.2f,1.0f);
+  La_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "la");
+  glUniform4f(La_location, 1.0f, 1.0f, 1.0f, 1.0f);
+
+  kd_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "kd");
+  glUniform4f(kd_location, 0.5f, 0.5f, 0.5f, 1.0f);
+  Ld_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "ld");
+  glUniform4f(Ld_location, 1.0f, 1.0f, 1.0f, 1.0f);
+
+  ks_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "ks");
+  glUniform4f(ks_location, 0.3f, 0.3, 0.3, 1.0f);
+  Ls_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "ls");
+  glUniform4f(Ls_location, 1.0f, 1.0f, 1.0f, 1.0f);
+
+  GLfloat shiny_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "shiny");
+  glUniform1f(shiny_location, 0.8);
+
+  GLfloat cameraPos_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "camPos");
+  glUniform3f(cameraPos_location, cam_pos.x, cam_pos.y, cam_pos.z);
+
+}
+
 void initScene(int argc, char *argv[])
 {
 
@@ -745,8 +834,8 @@ void initScene(int argc, char *argv[])
   float depth = 4.0f;
   float x_dist = 100.0f;
   float z_dist = 100.0f;
-  float width = 150.0f;
-  float height = 100.0f;
+  float width = 300.0f;
+  float height = 200.0f;
 
   //depth, width, height as of now only matter 
   CreateBackground(depth, x_dist, z_dist, width, height);
@@ -792,14 +881,14 @@ void initScene(int argc, char *argv[])
   CreatePositions(positions);
   CreateTube();
 
-  std::cout << "Positions: " << positions.size() << "\n";
-  std::cout << "Tangent Vectors: " << tangentVectors.size() << "\n";
-  std::cout << "Normal Vectors: " << cameraNormalVectors.size() << "\n";
+  // std::cout << "Positions: " << positions.size() << "\n";
+  // std::cout << "Tangent Vectors: " << tangentVectors.size() << "\n";
+  // std::cout << "Normal Vectors: " << cameraNormalVectors.size() << "\n";
 
   numVertices = positions.size();
   tubeNumVertices = tubeTriangles.size();
 
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearColor(53.0f/255.0f, 81.0f/255.0f, 92.0f/255.0f, 1.0f);
 
   // modify the following code accordingly
   glGenBuffers(1, &triVertexBuffer);
@@ -807,11 +896,24 @@ void initScene(int argc, char *argv[])
   glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * numVertices, positions.data(),
                GL_STATIC_DRAW);
 
+  glGenBuffers(1, &diffuseDotsBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, diffuseDotsBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * diffuseDotFloats.size(), diffuseDotFloats.data(),
+    GL_STATIC_DRAW);
+
+  glGenBuffers(1, &reflectedVectorsBuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, reflectedVectorsBuffer);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * reflectedVectors.size(), reflectedVectors.data(),
+    GL_STATIC_DRAW);
+
+
+
 
   pipelineProgram = new BasicPipelineProgram;
   int ret = pipelineProgram->Init(shaderBasePath);
   std::cout << "PATH: " << shaderBasePath << "\n";
   if (ret != 0) abort();
+
 
   glGenVertexArrays(1, &triVertexArray);
   glBindVertexArray(triVertexArray);
@@ -847,8 +949,19 @@ void initScene(int argc, char *argv[])
   glEnableVertexAttribArray(loc);
   glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 
+  glBindBuffer(GL_ARRAY_BUFFER, diffuseDotsBuffer);
+  loc =
+      glGetAttribLocation(pipelineProgram->GetProgramHandle(), "dotDiffuse");
+  glEnableVertexAttribArray(loc);
+  glVertexAttribPointer(loc, 1, GL_FLOAT, GL_FALSE, 0, (const void *)0);
 
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glBindBuffer(GL_ARRAY_BUFFER, reflectedVectorsBuffer);
+  loc =
+      glGetAttribLocation(pipelineProgram->GetProgramHandle(), "reflectedVector");
+  glEnableVertexAttribArray(loc);
+  glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, (const void *)0);
+
+
   glEnable(GL_DEPTH_TEST);
 
   std::cout << "GL error: " << glGetError() << std::endl;

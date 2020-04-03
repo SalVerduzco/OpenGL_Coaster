@@ -5,6 +5,8 @@ in vec4 color;
 in vec3 normal;
 in vec2 texCoord;
 
+in vec3 reflected;
+
 out vec2 tc;
 out vec4 col;
 
