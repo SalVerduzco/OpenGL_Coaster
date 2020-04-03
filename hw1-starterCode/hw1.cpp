@@ -43,6 +43,18 @@ glm::mat4x3 transposeControl;
 double s = 0.5;
 glm::vec3 currentCameraPosition;
 
+int screenshotOnes = -1;
+int screenshotTens = 0;
+int screenshotHundreds = 0;
+int currentFrame = 0;
+
+// int currentFrame = 0;
+
+
+// int screenshotOnes = -1;
+// int screenshotTens = 0;
+// int screenshotHundreds = 0;
+
 //PHONG DATA
 glm::vec3 toLightVec(0.54f,0.786f,-0.3f);
 
@@ -52,6 +64,7 @@ int ks_location, Ls_location;
 int toLight_location;
 
 int cameraPos_location;
+bool boolScreenshot = false;
 
 
 //DATADATA
@@ -366,6 +379,23 @@ void displayFunc()
   glutSwapBuffers();
 }
 
+
+void takeScreenshot(){
+   char *num = (char*)malloc(8 * sizeof(char));
+    screenshotOnes += 1;
+    if(screenshotOnes == 10){
+      screenshotOnes = 0;
+      screenshotTens += 1;
+    }
+    if(screenshotTens == 10){
+      screenshotTens = 0;
+      screenshotHundreds += 1;
+    }
+
+    sprintf(num, "%i%i%i%s", screenshotHundreds, screenshotTens, screenshotOnes, ".jpg");
+    saveScreenshot(num);
+}
+
 void idleFunc()
 {
   // do some stuff... 
@@ -373,6 +403,16 @@ void idleFunc()
   // for example, here, you can save the screenshots to disk (to make the animation)
 
   // make the screen update 
+
+ /* increase the frame */
+
+  if(boolScreenshot){
+    currentFrame += 1;
+    //take a screenshot every 5 frames, commented out for submission 
+    if(currentFrame % 5 == 0){
+      takeScreenshot();
+    }
+  }
   glutPostRedisplay();
 }
 
@@ -504,6 +544,10 @@ void keyboardFunc(unsigned char key, int x, int y)
       controlState = ROTATE;
     break;
 
+    case 'l':
+      boolScreenshot = !boolScreenshot;
+    break;
+
     case ' ':
       cout << "You pressed the spacebar." << endl;
     break;
@@ -627,8 +671,6 @@ void CreatePositions(std::vector<glm::vec3>& positions){
           glm::vec3 N1 = glm::normalize(glm::cross(cameraBinormalVectors[prev_index], 
                                         tangentVectors[curr_index]));
           cameraNormalVectors.emplace_back(N1);
-          std::cout << "CamNormal: ";
-          PrintVector(N1);
           glm::vec3 B1 = glm::normalize(glm::cross(tangentVectors[curr_index], N1));
           cameraBinormalVectors.emplace_back(B1);
         }
@@ -655,8 +697,8 @@ void addReflected(glm::vec3 v){
     reflectedVectors.emplace_back(v);
   }
 
-  std::cout << "Reflected: " << to_string(v.x) << "," << to_string(v.y) << "," <<
-  to_string(v.z) << "\n";
+  //std::cout << "Reflected: " << to_string(v.x) << "," << to_string(v.y) << "," <<
+  //to_string(v.z) << "\n";
 }
 
 void addDotDiffuse(GLfloat val){
@@ -792,7 +834,7 @@ void initUniforms(glm::vec3 cam_pos){
 //   GLfloat v2,
 //   GLfloat v3);
 
-  std::cout << to_string(cam_pos.x) << "\n";
+  //std::cout << to_string(cam_pos.x) << "\n";
 
   ka_location = glGetUniformLocation(pipelineProgram->GetProgramHandle(), "ka");
   glUniform4f(ka_location, 0.2f,0.2f,0.2f,1.0f);
@@ -1041,5 +1083,6 @@ int main(int argc, char *argv[])
   // sink forever into the glut loop
   glutMainLoop();
 }
+
 
 
